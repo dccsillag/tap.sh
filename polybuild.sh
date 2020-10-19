@@ -25,12 +25,19 @@ print_usage() {
 run_command() {
     echo \> "$*"
     # shellcheck disable=SC2068 # we want that $@ to split and become the command
-    $@ 2>&1 | sed 's/^/|   /'
-    # [ -z "$opt_dryrun" ] && $@
+    $@ > "$FIFO" 2>&1 &
+    sed 's/^/|   /' < "$FIFO"
+    wait $! || throw_error "tap failed" "on the following command:" "  $*"
 }
 
 throw_error() {
-    echo "fatal error: $*"
+    echo "fatal error: $1"
+    shift
+    for _ in $(seq $#)
+    do
+        echo "!   $1"
+        shift
+    done
     exit 1
 }
 
@@ -81,6 +88,11 @@ then
         throw_error "couldn't deduce the build system"
     fi
 fi
+
+# Create temp stuff
+trap 'rm -rf $TMPDIR' 0
+TMPDIR=$(mktemp -d)
+mkfifo "${FIFO=$TMPDIR/fifo}"
 
 # Do stuff:
 case "$opt_command" in
