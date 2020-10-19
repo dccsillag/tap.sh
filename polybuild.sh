@@ -141,6 +141,13 @@ case "$opt_command" in
     install)
         case "$opt_buildsystem" in
             make)
+                if [ "$EUID" -ne 0 ]
+                then
+                    echo "NOT RUNNING AS ROOT -- installing to ~/.local/bin/"
+                    [ -d "$HOME/.local/bin/" ] || throw_error "~/.local/bin/ does not exist"
+                    export PREFIX=~/.local
+                fi
+
                 if [ -n "$opt_dryrun" ]
                 then
                     run_command make install -n
