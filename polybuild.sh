@@ -21,6 +21,8 @@ print_usage() {
     echo "-C                Clean build files"
     echo "-I                Install executables"
     echo "-T                Run tests"
+    # TODO: profile (-P)
+    echo "-M                Run benchmarks (measure)"
 }
 
 run_command() {
@@ -43,7 +45,7 @@ throw_error() {
 }
 
 # Parse arguments
-while getopts hBR:CITdj:s:m: name
+while getopts hBR:CITMdj:s:m: name
 do
     case $name in
         # Commands
@@ -52,6 +54,7 @@ do
         C) opt_command='clean'                    ;;
         I) opt_command='install'                  ;;
         T) opt_command='test'                     ;;
+        M) opt_command='benchmark'                ;;
 
         # Global options
         d) opt_dryrun=1              ;;
@@ -201,6 +204,21 @@ case "$opt_command" in
                     run_command make test -n
                 else
                     run_command make test
+                fi
+                ;;
+            ?)
+                throw_error "bad build system: $opt_buildsystem"
+                ;;
+        esac
+        ;;
+    benchmark)
+        case "$opt_buildsystem" in
+            make)
+                if [ -n "$opt_dryrun" ]
+                then
+                    run_command make bench -n
+                else
+                    run_command make bench
                 fi
                 ;;
             ?)
