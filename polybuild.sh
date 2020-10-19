@@ -22,7 +22,7 @@ usage() {
 
 run_command() {
     echo \> "$*"
-    $@ 2>&1 | sed 's/^/    /'
+    $@ 2>&1 | sed 's/^/|   /'
     # [ -z "$opt_dryrun" ] && $@
 }
 
