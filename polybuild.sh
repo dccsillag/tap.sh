@@ -46,10 +46,10 @@ while getopts hBCITdj:s:m: name
 do
     case $name in
         # Commands
-        B) opt_command=build   ;;
-        C) opt_command=clean   ;;
-        I) opt_command=install ;;
-        T) opt_command=test    ;;
+        B) opt_command='build'   ;;
+        C) opt_command='clean'   ;;
+        I) opt_command='install' ;;
+        T) opt_command='test'    ;;
 
         # Global options
         d) opt_dryrun=1              ;;
