@@ -8,6 +8,7 @@ print_usage() {
     echo
     echo "-s <BUILD_SYSTEM> Force a build system"
     echo "-d                Do a dry run"
+    echo "-j                Number of jobs to use"
     echo
     echo "-m <MODE>         Build under a certain mode (options: debug, release,"
     echo "                  release+debug or optsize)"
