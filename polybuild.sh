@@ -17,6 +17,7 @@ print_usage() {
     echo "-------------------"
     echo
     echo "-B                Build the project"
+    echo "-R                Build and run an executable"
     echo "-C                Clean build files"
     echo "-I                Install executables"
     echo "-T                Run tests"
@@ -42,14 +43,15 @@ throw_error() {
 }
 
 # Parse arguments
-while getopts hBCITdj:s:m: name
+while getopts hBR:CITdj:s:m: name
 do
     case $name in
         # Commands
-        B) opt_command='build'   ;;
-        C) opt_command='clean'   ;;
-        I) opt_command='install' ;;
-        T) opt_command='test'    ;;
+        B) opt_command='build'                    ;;
+        R) opt_command='run'; opt_torun="$OPTARG" ;;
+        C) opt_command='clean'                    ;;
+        I) opt_command='install'                  ;;
+        T) opt_command='test'                     ;;
 
         # Global options
         d) opt_dryrun=1              ;;
@@ -64,7 +66,7 @@ do
 done
 shift $((OPTIND-1))
 
-if [ "$#" -ge 1 ]
+if [ "$#" -ge 1 ] && [ "$opt_command" = run ]
 then
     echo "Extra arguments: $*"
     exit 2
@@ -138,6 +140,20 @@ case "$opt_command" in
             ?)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
+        esac
+        ;;
+    run)
+        if [ -z "$opt_dryrun" ]
+        then
+            "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs"
+        else
+            "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs" -d
+        fi
+
+        case "$opt_buildsystem" in
+            # We can't use run_command here because of possible ncurses usage.
+            make) "$opt_torun" $@                                  ;;
+            ?)    throw_error "bad build system: $opt_buildsystem" ;;
         esac
         ;;
     clean)
