@@ -1,6 +1,6 @@
 #!/bin/sh
 
-usage() {
+print_usage() {
     echo "Usage: $0 [-h] [-d] [<COMMAND> <additional options...>]"
     echo "==============================================================================="
     echo
@@ -46,8 +46,8 @@ do
         m) opt_mode="$OPTARG" ;;
 
         # Help & fallback
-        h) usage; exit 0 ;;
-        ?) usage; exit 2 ;;
+        h) print_usage; exit 0 ;;
+        ?) print_usage; exit 2 ;;
     esac
 done
 shift $((OPTIND-1))
