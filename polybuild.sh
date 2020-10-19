@@ -19,6 +19,7 @@ print_usage() {
     echo "-B                Build the project"
     echo "-C                Clean build files"
     echo "-I                Install executables"
+    echo "-T                Run tests"
 }
 
 run_command() {
@@ -34,13 +35,14 @@ throw_error() {
 }
 
 # Parse arguments
-while getopts hBCIdj:s:m: name
+while getopts hBCITdj:s:m: name
 do
     case $name in
         # Commands
         B) opt_command=build   ;;
         C) opt_command=clean   ;;
         I) opt_command=install ;;
+        T) opt_command=test    ;;
 
         # Global options
         d) opt_dryrun=1              ;;
@@ -156,6 +158,21 @@ case "$opt_command" in
                     run_command make install -n
                 else
                     run_command make install -j $opt_jobs
+                fi
+                ;;
+            ?)
+                throw_error "bad build system: $opt_buildsystem"
+                ;;
+        esac
+        ;;
+    test)
+        case "$opt_buildsystem" in
+            make)
+                if [ -n "$opt_dryrun" ]
+                then
+                    run_command make test -n
+                else
+                    run_command make test
                 fi
                 ;;
             ?)
