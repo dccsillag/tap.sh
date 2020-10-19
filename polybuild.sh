@@ -22,6 +22,7 @@ print_usage() {
 
 run_command() {
     echo \> "$*"
+    # shellcheck disable=SC2068 # we want that $@ to split and become the command
     $@ 2>&1 | sed 's/^/|   /'
     # [ -z "$opt_dryrun" ] && $@
 }
@@ -69,10 +70,10 @@ if [ -z "$opt_buildsystem" ]
 then
     if [ -f CMakeLists.txt ]
     then
-        opt_buildsystem=cmake
+        opt_buildsystem='cmake'
     elif [ -f Makefile ] || [ -f makefile ]
     then
-        opt_buildsystem=make
+        opt_buildsystem='make'
     else
         throw_error "couldn't deduce the build system"
     fi
@@ -101,7 +102,6 @@ case "$opt_command" in
                 ;;
             cmake)
                 run_command mkdir -p .build-$opt_mode
-                pushd
                 run_command cd .build-$opt_mode
                 case $opt_mode in
                     debug)         run_command cmake .. -DCMAKE_BUILD_TYPE=Debug          ;;
@@ -118,7 +118,7 @@ case "$opt_command" in
                     run_command make -j $opt_jobs
                 fi
 
-                popd
+                cd ..
                 ;;
             ?)
                 throw_error "bad build system: $opt_buildsystem"
@@ -143,10 +143,10 @@ case "$opt_command" in
     install)
         case "$opt_buildsystem" in
             make)
-                if [ "$EUID" -ne 0 ]
+                if [ "$(id -u)" -ne 0 ]
                 then
-                    echo "NOT RUNNING AS ROOT -- installing to ~/.local/bin/"
-                    [ -d "$HOME/.local/bin/" ] || throw_error "~/.local/bin/ does not exist"
+                    echo "NOT RUNNING AS ROOT -- installing to $HOME/.local/bin/"
+                    [ -d "$HOME/.local/bin/" ] || throw_error "$HOME/.local/bin/ does not exist"
                     export PREFIX=~/.local
                 fi
 
