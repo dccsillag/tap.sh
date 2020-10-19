@@ -32,7 +32,7 @@ throw_error() {
 }
 
 # Parse arguments
-while getopts hBCIds:m: name
+while getopts hBCIdj:s:m: name
 do
     case $name in
         # Commands
@@ -41,9 +41,10 @@ do
         I) opt_command=install ;;
 
         # Global options
-        d) opt_dryrun=1 ;;
+        d) opt_dryrun=1              ;;
         s) opt_buildsystem="$OPTARG" ;;
-        m) opt_mode="$OPTARG" ;;
+        m) opt_mode="$OPTARG"        ;;
+        j) opt_jobs="$OPTARG"        ;;
 
         # Help & fallback
         h) print_usage; exit 0 ;;
@@ -61,6 +62,7 @@ fi
 # Default arguments
 [ -z "$opt_command" ] && opt_command=build
 [ -z "$opt_mode" ] && opt_mode=debug
+[ -z "$opt_jobs" ] && opt_jobs=1
 
 # Figure out the build system, if necessary
 if [ -z "$opt_buildsystem" ]
@@ -94,7 +96,7 @@ case "$opt_command" in
                 then
                     run_command make -n
                 else
-                    run_command make
+                    run_command make -j $opt_jobs
                 fi
                 ;;
             cmake)
@@ -113,7 +115,7 @@ case "$opt_command" in
                 then
                     run_command make -n
                 else
-                    run_command make
+                    run_command make -j $opt_jobs
                 fi
 
                 popd
@@ -152,7 +154,7 @@ case "$opt_command" in
                 then
                     run_command make install -n
                 else
-                    run_command make install
+                    run_command make install -j $opt_jobs
                 fi
                 ;;
             ?)
