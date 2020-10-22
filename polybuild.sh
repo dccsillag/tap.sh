@@ -104,13 +104,13 @@ case "$opt_command" in
     build)
         case "$opt_buildsystem" in
             make)
-                case $opt_mode in
+                case "$opt_mode" in
                     # As suggested in https://stackoverflow.com/a/59314670/4803382
                     debug)         export CFLAGS="$CFLAGS -O0 -g"              ;;
                     release)       export CFLAGS="$CFLAGS -O3 -DNDEBUG"        ;;
                     release+debug) export CFLAGS="$CFLAGS -O2 -DNDEBUG -g"     ;;
                     optsize)       export CFLAGS="$CFLAGS -Os -DNDEBUG"        ;;
-                    ?)             throw_error "unknown build mode: $opt_mode" ;;
+                    *)             throw_error "unknown build mode: $opt_mode" ;;
                 esac
 
                 if [ -n "$opt_dryrun" ]
@@ -123,12 +123,14 @@ case "$opt_command" in
             cmake)
                 run_command mkdir -p .build-$opt_mode
                 run_command cd .build-$opt_mode
+                cd .build-$opt_mode # we need to do this outside run_command
+                                    # because we need to change the cwd
                 case $opt_mode in
                     debug)         run_command cmake .. -DCMAKE_BUILD_TYPE=Debug          ;;
                     release)       run_command cmake .. -DCMAKE_BUILD_TYPE=Release        ;;
                     release+debug) run_command cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo ;;
                     optsize)       run_command cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel     ;;
-                    ?)             throw_error "unknown build mode: $opt_mode"            ;;
+                    *)             throw_error "unknown build mode: $opt_mode"            ;;
                 esac
 
                 if [ -n "$opt_dryrun" ]
@@ -140,7 +142,7 @@ case "$opt_command" in
 
                 cd ..
                 ;;
-            ?)
+            *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
         esac
@@ -156,7 +158,7 @@ case "$opt_command" in
         case "$opt_buildsystem" in
             # We can't use run_command here because of possible ncurses usage.
             make) "$opt_torun" $@                                  ;;
-            ?)    throw_error "bad build system: $opt_buildsystem" ;;
+            *)    throw_error "bad build system: $opt_buildsystem" ;;
         esac
         ;;
     clean)
@@ -169,7 +171,7 @@ case "$opt_command" in
                     run_command make clean
                 fi
                 ;;
-            ?)
+            *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
         esac
@@ -191,7 +193,7 @@ case "$opt_command" in
                     run_command make install -j $opt_jobs
                 fi
                 ;;
-            ?)
+            *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
         esac
@@ -206,7 +208,7 @@ case "$opt_command" in
                     run_command make test
                 fi
                 ;;
-            ?)
+            *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
         esac
@@ -221,12 +223,12 @@ case "$opt_command" in
                     run_command make bench
                 fi
                 ;;
-            ?)
+            *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
         esac
         ;;
-    ?)
+    *)
         echo "Unknown command: $opt_command"
         exit 2
         ;;
