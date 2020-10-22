@@ -123,8 +123,8 @@ case "$opt_command" in
             cmake)
                 run_command mkdir -p .build-$opt_mode
                 run_command cd .build-$opt_mode
-                cd .build-$opt_mode # we need to do this outside run_command
-                                    # because we need to change the cwd
+                cd .build-$opt_mode || exit 1 # we need to do this outside run_command
+                                              # because we need to change the cwd
                 case $opt_mode in
                     debug)         run_command cmake .. -DCMAKE_BUILD_TYPE=Debug          ;;
                     release)       run_command cmake .. -DCMAKE_BUILD_TYPE=Release        ;;
@@ -155,9 +155,10 @@ case "$opt_command" in
             "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs" -d
         fi
 
+        # We can't use run_command here because of possible ncurses usage.
+        # shellcheck disable=SC2068 # we want that $@ to split and become the argv
         case "$opt_buildsystem" in
-            # We can't use run_command here because of possible ncurses usage.
-            make) "$opt_torun" $@                                  ;;
+            make) ./"$opt_torun" $@                                ;;
             *)    throw_error "bad build system: $opt_buildsystem" ;;
         esac
         ;;
