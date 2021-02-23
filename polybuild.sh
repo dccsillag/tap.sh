@@ -157,12 +157,13 @@ case "$opt_buildsystem" in
         esac
         ;;
     cmake)
+        builddir=.build_"$opt_mode"
         case "$opt_command" in
             build)
-                run_command mkdir -p .build-$opt_mode
-                run_command cd .build-$opt_mode
-                cd .build-$opt_mode || exit 1 # we need to do this outside run_command
-                                              # because we need to change the cwd
+                run_command mkdir -p "builddir"
+                run_command cd "builddir"
+                cd "builddir" || exit 1 # we need to do this outside run_command
+                                        # because we need to change the cwd
                 case $opt_mode in
                     debug)         run_command cmake .. -DCMAKE_BUILD_TYPE=Debug          ;;
                     release)       run_command cmake .. -DCMAKE_BUILD_TYPE=Release        ;;
@@ -171,12 +172,7 @@ case "$opt_buildsystem" in
                     *)             bad_build_mode                                         ;;
                 esac
 
-                if [ -n "$opt_dryrun" ]
-                then
-                    run_command make -n
-                else
-                    run_command make -j $opt_jobs
-                fi
+                [ -n "$opt_dryrun" ] && run_command make -n || run_command make -j $opt_jobs
 
                 cd ..
                 ;;
@@ -184,6 +180,7 @@ case "$opt_buildsystem" in
         esac
         ;;
     meson)
+        builddir=.build_"$opt_mode"
         case "$opt_command" in
             build)
                 case $opt_mode in
@@ -193,19 +190,19 @@ case "$opt_buildsystem" in
                     optsize)       throw_error "no optsize build type for Meson" ;;
                     *)             bad_build_mode                                ;;
                 esac
-                test -d build || run_command meson setup --buildtype=$btype build .
+                test -d "$builddir" || run_command meson setup --buildtype=$btype "$builddir" .
 
-                run_command meson compile -C build -j $opt_jobs
+                run_command meson compile -C "$builddir" -j $opt_jobs
                 ;;
             run)
-                build/"$opt_torun" $@
+                "$builddir"/"$opt_torun" $@
                 ;;
             install)
-                run_command meson configure -D prefix=$PREFIX build # FIXME
-                run_command meson install -C build
+                run_command meson configure -D prefix=$PREFIX "$builddir" # FIXME
+                run_command meson install -C "$builddir"
                 ;;
             clean)
-                run_command meson compile -C build --clean
+                run_command meson compile -C "$builddir" --clean
                 ;;
             *) bad_command ;;
         esac
