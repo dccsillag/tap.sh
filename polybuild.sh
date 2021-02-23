@@ -89,6 +89,9 @@ then
     elif [ -f Makefile ] || [ -f makefile ]
     then
         opt_buildsystem='make'
+    elif [ -f meson.build ]
+    then
+        opt_buildsystem='meson'
     else
         throw_error "couldn't deduce the build system"
     fi
@@ -142,6 +145,20 @@ case "$opt_command" in
 
                 cd ..
                 ;;
+            meson)
+                case $opt_mode in
+                    debug)         btype=debug                                   ;;
+                    release)       btype=release                                 ;;
+                    release+debug) btype=debugoptimized                          ;;
+                    optsize)       throw_error "no optsize build type for Meson" ;;
+                    *)             throw_error "unknown build mode: $opt_mode"   ;;
+                esac
+                test -d build || run_command meson setup --buildtype=$btype build .
+
+                # cd build || throw_error "fatal: could not enter Meson build directory"
+
+                run_command meson compile -C build -j $opt_jobs
+                ;;
             *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
@@ -158,7 +175,8 @@ case "$opt_command" in
         # We can't use run_command here because of possible ncurses usage.
         # shellcheck disable=SC2068 # we want that $@ to split and become the argv
         case "$opt_buildsystem" in
-            make) ./"$opt_torun" $@                                ;;
+            make)  ./"$opt_torun" $@                               ;;
+            meson) build/"$opt_torun" $@                           ;;
             *)    throw_error "bad build system: $opt_buildsystem" ;;
         esac
         ;;
@@ -172,27 +190,38 @@ case "$opt_command" in
                     run_command make clean
                 fi
                 ;;
+            meson)
+                run_command meson compile -C build --clean
+                ;;
             *)
                 throw_error "bad build system: $opt_buildsystem"
                 ;;
         esac
         ;;
     install)
+        if [ "$(id -u)" -ne 0 ]
+        then
+            echo "NOT RUNNING AS ROOT -- installing to $HOME/.local/bin/"
+            [ -d "$HOME/.local/bin/" ] || throw_error "$HOME/.local/bin/ does not exist"
+            export PREFIX=~/.local
+        else
+            export PREFIX=/usr/local
+        fi
+
         case "$opt_buildsystem" in
             make)
-                if [ "$(id -u)" -ne 0 ]
-                then
-                    echo "NOT RUNNING AS ROOT -- installing to $HOME/.local/bin/"
-                    [ -d "$HOME/.local/bin/" ] || throw_error "$HOME/.local/bin/ does not exist"
-                    export PREFIX=~/.local
-                fi
-
                 if [ -n "$opt_dryrun" ]
                 then
                     run_command make install -n
                 else
                     run_command make install -j $opt_jobs
                 fi
+                ;;
+            meson)
+                # FIXME
+                run_command meson configure -D prefix=$PREFIX build
+
+                run_command meson install -C build
                 ;;
             *)
                 throw_error "bad build system: $opt_buildsystem"
