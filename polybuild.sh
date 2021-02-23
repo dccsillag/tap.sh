@@ -44,6 +44,10 @@ throw_error() {
     exit 1
 }
 
+bad_command() {
+    throw_error "Bad command for build system '$opt_buildsystem': '$opt_command'"
+}
+
 # Parse arguments
 while getopts hBR:CITMdj:s:m: name
 do
@@ -103,10 +107,22 @@ TMPDIR=$(mktemp -d)
 mkfifo "${FIFO=$TMPDIR/fifo}"
 
 # Do stuff:
-case "$opt_command" in
-    build)
-        case "$opt_buildsystem" in
-            make)
+
+[ "$opt_command" = install ] && {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "NOT RUNNING AS ROOT -- installing to $HOME/.local/bin/"
+        [ -d "$HOME/.local/bin/" ] || throw_error "$HOME/.local/bin/ does not exist"
+        export PREFIX=~/.local
+    else
+        export PREFIX=/usr/local
+    fi
+}
+
+case "$opt_buildsystem" in
+    make)
+        [ -n "$opt_dryrun" ] && opt_dryrun=-n
+        case "$opt_command" in
+            build)
                 case "$opt_mode" in
                     # As suggested in https://stackoverflow.com/a/59314670/4803382
                     debug)         export CFLAGS="$CFLAGS -O0 -g"              ;;
@@ -116,14 +132,29 @@ case "$opt_command" in
                     *)             throw_error "unknown build mode: $opt_mode" ;;
                 esac
 
-                if [ -n "$opt_dryrun" ]
-                then
-                    run_command make -n
-                else
-                    run_command make -j $opt_jobs
-                fi
+                run_command make "$opt_dryrun" -j "$opt_jobs"
                 ;;
-            cmake)
+            run)
+                ./"$opt_torun" $@
+                ;;
+            install)
+                run_command make install "$opt_dryrun" -j "$opt_jobs"
+                ;;
+            clean)
+                run_command make clean "$opt_dryrun" -j "$opt_jobs"
+                ;;
+            test)
+                run_command make test "$opt_dryrun" -j "$opt_jobs"
+                ;;
+            benchmark)
+                run_command make bench "$opt_dryrun" -j "$opt_jobs"
+                ;;
+            *) bad_command ;;
+        esac
+        ;;
+    cmake)
+        case "$opt_command" in
+            build)
                 run_command mkdir -p .build-$opt_mode
                 run_command cd .build-$opt_mode
                 cd .build-$opt_mode || exit 1 # we need to do this outside run_command
@@ -145,7 +176,12 @@ case "$opt_command" in
 
                 cd ..
                 ;;
-            meson)
+            *) bad_command ;;
+        esac
+        ;;
+    meson)
+        case "$opt_command" in
+            build)
                 case $opt_mode in
                     debug)         btype=debug                                   ;;
                     release)       btype=release                                 ;;
@@ -159,107 +195,18 @@ case "$opt_command" in
 
                 run_command meson compile -C build -j $opt_jobs
                 ;;
-            *)
-                throw_error "bad build system: $opt_buildsystem"
+            run)
+                build/"$opt_torun" $@
                 ;;
-        esac
-        ;;
-    run)
-        if [ -z "$opt_dryrun" ]
-        then
-            "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs"
-        else
-            "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs" -d
-        fi
-
-        # We can't use run_command here because of possible ncurses usage.
-        # shellcheck disable=SC2068 # we want that $@ to split and become the argv
-        case "$opt_buildsystem" in
-            make)  ./"$opt_torun" $@                               ;;
-            meson) build/"$opt_torun" $@                           ;;
-            *)    throw_error "bad build system: $opt_buildsystem" ;;
-        esac
-        ;;
-    clean)
-        case "$opt_buildsystem" in
-            make)
-                if [ -n "$opt_dryrun" ]
-                then
-                    run_command make clean -n
-                else
-                    run_command make clean
-                fi
-                ;;
-            meson)
-                run_command meson compile -C build --clean
-                ;;
-            *)
-                throw_error "bad build system: $opt_buildsystem"
-                ;;
-        esac
-        ;;
-    install)
-        if [ "$(id -u)" -ne 0 ]
-        then
-            echo "NOT RUNNING AS ROOT -- installing to $HOME/.local/bin/"
-            [ -d "$HOME/.local/bin/" ] || throw_error "$HOME/.local/bin/ does not exist"
-            export PREFIX=~/.local
-        else
-            export PREFIX=/usr/local
-        fi
-
-        case "$opt_buildsystem" in
-            make)
-                if [ -n "$opt_dryrun" ]
-                then
-                    run_command make install -n
-                else
-                    run_command make install -j $opt_jobs
-                fi
-                ;;
-            meson)
-                # FIXME
-                run_command meson configure -D prefix=$PREFIX build
-
+            install)
+                run_command meson configure -D prefix=$PREFIX build # FIXME
                 run_command meson install -C build
                 ;;
-            *)
-                throw_error "bad build system: $opt_buildsystem"
+            clean)
+                run_command meson compile -C build --clean
                 ;;
+            *) bad_command ;;
         esac
         ;;
-    test)
-        case "$opt_buildsystem" in
-            make)
-                if [ -n "$opt_dryrun" ]
-                then
-                    run_command make test -n
-                else
-                    run_command make test
-                fi
-                ;;
-            *)
-                throw_error "bad build system: $opt_buildsystem"
-                ;;
-        esac
-        ;;
-    benchmark)
-        case "$opt_buildsystem" in
-            make)
-                if [ -n "$opt_dryrun" ]
-                then
-                    run_command make bench -n
-                else
-                    run_command make bench
-                fi
-                ;;
-            *)
-                throw_error "bad build system: $opt_buildsystem"
-                ;;
-        esac
-        ;;
-    *)
-        echo "Unknown command: $opt_command"
-        exit 2
-        ;;
+    *) throw_error "bad build system: $opt_buildsystem" ;;
 esac
