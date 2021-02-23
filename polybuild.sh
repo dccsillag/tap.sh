@@ -48,6 +48,10 @@ bad_command() {
     throw_error "Bad command for build system '$opt_buildsystem': '$opt_command'"
 }
 
+bad_build_mode() {
+    throw_error "Bad build mode for build system '$opt_buildsystem': '$opt_mode'"
+}
+
 # Parse arguments
 while getopts hBR:CITMdj:s:m: name
 do
@@ -129,7 +133,7 @@ case "$opt_buildsystem" in
                     release)       export CFLAGS="$CFLAGS -O3 -DNDEBUG"        ;;
                     release+debug) export CFLAGS="$CFLAGS -O2 -DNDEBUG -g"     ;;
                     optsize)       export CFLAGS="$CFLAGS -Os -DNDEBUG"        ;;
-                    *)             throw_error "unknown build mode: $opt_mode" ;;
+                    *)             bad_build_mode                              ;;
                 esac
 
                 run_command make "$opt_dryrun" -j "$opt_jobs"
@@ -164,7 +168,7 @@ case "$opt_buildsystem" in
                     release)       run_command cmake .. -DCMAKE_BUILD_TYPE=Release        ;;
                     release+debug) run_command cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo ;;
                     optsize)       run_command cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel     ;;
-                    *)             throw_error "unknown build mode: $opt_mode"            ;;
+                    *)             bad_build_mode                                         ;;
                 esac
 
                 if [ -n "$opt_dryrun" ]
@@ -187,11 +191,9 @@ case "$opt_buildsystem" in
                     release)       btype=release                                 ;;
                     release+debug) btype=debugoptimized                          ;;
                     optsize)       throw_error "no optsize build type for Meson" ;;
-                    *)             throw_error "unknown build mode: $opt_mode"   ;;
+                    *)             bad_build_mode                                ;;
                 esac
                 test -d build || run_command meson setup --buildtype=$btype build .
-
-                # cd build || throw_error "fatal: could not enter Meson build directory"
 
                 run_command meson compile -C build -j $opt_jobs
                 ;;
