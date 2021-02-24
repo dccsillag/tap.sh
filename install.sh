@@ -2,4 +2,4 @@
 
 PREFIX=$HOME/.local/bin
 
-install polybuild.sh $PREFIX/tap
+install tap.sh $PREFIX/tap
