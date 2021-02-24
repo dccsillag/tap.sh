@@ -122,6 +122,15 @@ mkfifo "${FIFO=$TMPDIR/fifo}"
     fi
 }
 
+[ "$opt_command" = run ] && {
+    if [ -z "$opt_dryrun" ]
+    then
+        "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs"
+    else
+        "$0" -B -m "$opt_mode" -s "$opt_buildsystem" -j "$opt_jobs" -d
+    fi
+}
+
 case "$opt_buildsystem" in
     make)
         [ -n "$opt_dryrun" ] && opt_dryrun=-n
@@ -172,7 +181,11 @@ case "$opt_buildsystem" in
                     *)             bad_build_mode                                         ;;
                 esac
 
-                [ -n "$opt_dryrun" ] && run_command make -n || run_command make -j $opt_jobs
+                if [ -n "$opt_dryrun" ]; then
+                    run_command make -n
+                else
+                    run_command make -j $opt_jobs
+                fi
 
                 cd ..
                 ;;
