@@ -1,3 +1,10 @@
+### DEPRECATION NOTICE
+
+This is being replaced by a tool with roughly the same functionality, but now written in Rust: https://github.com/dccsillag/tap.
+Thanks to this, it is now more reliable and has a better CLI.
+
+This shell script version will no longer be developed.
+
 Tap
 ===
 
